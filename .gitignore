@@ -1,0 +1,6 @@
+.*
+!.gitignore
+*.pyc
+__pycache__/
+out/
+*.m3u8
