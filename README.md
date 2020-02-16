@@ -15,11 +15,10 @@ Developed on Python 3.6, Install python libs in `requirements.txt`.
 
 # Usage
 
-1. Download m3u8 file manually
-2. Download video parts by m3u8 files and merged into mp4
+Download video parts by m3u8 files and merged into mp4
 
 ```
-python downloader.py <path-to-m3u8-file> <domain-prefix-for-video>
+python downloader.py <path-or-url-of-m3u8-file> <domain-prefix-for-video>
 ```
 
 Tips:

@@ -1,10 +1,23 @@
 import os
+from urllib.parse import urlparse
 import click
 import requests
-from retrying import retry
+
+
+def download_m3u8(path):
+    res = requests.get(path, verify=False)
+    res.raise_for_status()
+    path = urlparse(path).path
+    out = path[path.rindex('/') + 1:]
+    with open(out, 'wb') as f:
+        for chunk in res.iter_content(100000):
+            f.write(chunk)
+    return out
 
 
 def extract_ts(m3u8_path):
+    if m3u8_path.startswith('http://') or m3u8_path.startswith('https://'):
+        m3u8_path = download_m3u8(m3u8_path)
     with open(m3u8_path) as fp:
         first = fp.readline().strip()
         if first != '#EXTM3U':
@@ -19,11 +32,21 @@ def extract_ts(m3u8_path):
                 continue
 
 
-@retry(stop_max_attempt_number=5, stop_max_delay=60)
-def download_ts(path, out):
+def download_ts(path, out, max_retry=5):
     click.echo('Download {}'.format(path))
-    res = requests.get(path, verify=False)
-    res.raise_for_status()
+    success = False
+    tries = 1
+    res = None
+    while not success and tries <= max_retry:
+        tries += 1
+        try:
+            res = requests.get(path, verify=False)
+            res.raise_for_status()
+            success = True
+        except Exception as e:
+            click.echo('Download error: {} retrying...'.format(e))
+    if not success or not res:
+        raise ValueError('Download failed for {}'.format(path))
     os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, 'wb') as f:
         for chunk in res.iter_content(100000):
@@ -53,7 +76,7 @@ def main(filepath, url, **kwargs):
     """
     Download by m3u8 file.
 
-    :filepath: m3u8 file path
+    :filepath: m3u8 file path or url
     :url: download domain
     """
     ts_list = []
